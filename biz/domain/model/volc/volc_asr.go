@@ -161,12 +161,46 @@ func (app *VcAsrApp) Send(data []byte) error {
 	return nil
 }
 
+// Last 发送最后一个包
+func (app *VcAsrApp) Last() error {
+	if app.ws == nil {
+		log.Error("ws is nil")
+	}
+	// 此处本来应该在最后一个包时, 将seq置为负数, 然后采用结束帧类型, 但是考虑到采用Close方法结束, 所以这里就不用这种方式了, 而是在Close中粗暴退出
+	app.seq++
+	println(app.seq)
+	messageTypeSpecificFlags := NegSequence
+	// header
+	header := getHeader(AudioOnlyRequest, messageTypeSpecificFlags, JSON, GZIP, byte(0))
+	//// seq
+	//seqBytes := util.IntToBytes(-1)
+	// payload
+	payloadBytes, err := util.GzipCompress([]byte{})
+	payloadSize := util.IntToBytes(len(payloadBytes))
+	if err != nil {
+		return err
+	}
+
+	//audioOnlyRequest := append(header, append(seqBytes, append(payloadSize, payloadBytes...)...)...)
+	audioOnlyRequest := append(header, append(payloadSize, payloadBytes...)...)
+
+	app.mu.Lock()
+	defer app.mu.Unlock()
+	if err = app.ws.WriteMessage(websocket.BinaryMessage, audioOnlyRequest); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Receive 接受响应
 func (app *VcAsrApp) Receive() (string, error) {
 	if app.ws == nil {
 		log.Error("ws is nil")
 	}
 	mt, res, err := app.ws.ReadMessage()
+	if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+		return "", io.EOF
+	}
 	if err != nil {
 		return "", err
 	}
@@ -211,7 +245,10 @@ func (app *VcAsrApp) receiveBytes(res []byte) (string, error) {
 
 // Close 释放资源
 func (app *VcAsrApp) Close() error {
-	return app.ws.Close()
+	if app.ws != nil {
+		return app.ws.Close()
+	}
+	return nil
 }
 
 // parse 解析响应帧

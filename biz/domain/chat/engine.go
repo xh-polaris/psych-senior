@@ -13,7 +13,6 @@ import (
 	"github.com/xh-polaris/psych-senior/biz/infrastructure/config"
 	"github.com/xh-polaris/psych-senior/biz/infrastructure/consts"
 	"github.com/xh-polaris/psych-senior/biz/infrastructure/mq"
-	"github.com/xh-polaris/psych-senior/biz/infrastructure/util"
 	"io"
 	"strings"
 	"time"
@@ -41,6 +40,9 @@ type Engine struct {
 	// ttsApp 是调用的语音合成大模型
 	ttsApp model.TtsApp
 
+	// tts是否流式 (是否双端流式, 若false则一句话发一次)
+	ttsStream bool
+
 	// sessionId 是本轮对话的唯一标记, 只有第一次调用时会写入, 应该不需要互斥锁
 	// 目前使用的是BaiLian提供的sessionId管理, 如果有更好的方式, 可以考虑自己实现
 	sessionId string
@@ -65,6 +67,9 @@ type Engine struct {
 
 	// provider 消息生产者
 	provider *mq.HistoryProducer
+
+	// round 对话轮数
+	round int
 }
 
 // NewEngine 初始化一个ChatEngine
@@ -73,13 +78,12 @@ func NewEngine(ctx context.Context, conn *websocket.Conn) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := config.GetConfig()
 	e := &Engine{
-		ctx:    ctx,
-		cancel: cancel,
-		ws:     domain.NewWsHelper(conn),
-		rs:     domain.GetRedisHelper(),
-		//rs:          domain.NewMemoryRedisHelper(),
-		chatApp:     bailian.NewBLChatApp(c.BaiLianChat.AppId, c.BaiLianChat.ApiKey),
-		ttsApp:      volc.NewVcTtsApp(c.VolcTts.AppKey, c.VolcTts.AccessKey, c.VolcTts.Speaker, c.VolcTts.ResourceId, c.VolcTts.Url),
+		ctx:     ctx,
+		cancel:  cancel,
+		ws:      domain.NewWsHelper(conn),
+		rs:      domain.GetRedisHelper(),
+		chatApp: bailian.NewBLChatApp(c.BaiLianChat.AppId, c.BaiLianChat.ApiKey),
+		//ttsApp:      volc.NewVcTtsApp(c.VolcTts.AppKey, c.VolcTts.AccessKey, c.VolcTts.Speaker, c.VolcTts.ResourceId, c.VolcTts.Url),
 		aiHistory:   make(chan string, 10),
 		userHistory: make(chan string, 10),
 		outw:        make(chan string, 50),
@@ -87,6 +91,7 @@ func NewEngine(ctx context.Context, conn *websocket.Conn) *Engine {
 		stop:        make(chan bool),
 		startTime:   time.Now(),
 		provider:    mq.GetHistoryProducer(),
+		round:       0,
 	}
 	return e
 }
@@ -133,6 +138,17 @@ func (e *Engine) validate() bool {
 		return false
 	}
 	log.Info("调用方: %s, 调用时间: %s", startReq.From, time.Unix(startReq.Timestamp, 0).String())
+
+	c := config.GetConfig()
+	if startReq.Lang == "zh-shanghai" {
+		e.ttsApp = volc.NewVcNoModelTtsApp(c.VolcNoModelTts.AppKey, c.VolcNoModelTts.AccessKey, c.VolcNoModelTts.Speaker, c.VolcNoModelTts.Cluster, c.VolcNoModelTts.Url)
+		e.ttsStream = false
+	} else if startReq.Lang == "zh" {
+		e.ttsApp = volc.NewVcTtsApp(c.VolcTts.AppKey, c.VolcTts.AccessKey, c.VolcTts.Speaker, c.VolcTts.ResourceId, c.VolcTts.Url)
+		e.ttsStream = true
+	} else {
+		return false
+	}
 	return true
 }
 
@@ -169,6 +185,7 @@ func (e *Engine) Chat() {
 		}
 		// 写入用户消息
 		e.userHistory <- req.Msg
+		e.round++
 		// 调用ai, 流式响应
 		go e.streamCall(req.Msg)
 	}
@@ -248,11 +265,25 @@ func (e *Engine) ttsInit() (err error) {
 // ttsUp 上传合成音频用文字 #消费者
 func (e *Engine) ttsUp(texts chan string) {
 	var err error
-
-	for text := range texts {
-		if err = e.ttsApp.Send(text); err != nil {
-			log.Error("send tts err:", err)
-			return
+	if e.ttsStream {
+		for text := range texts {
+			if err = e.ttsApp.Send(text); err != nil {
+				log.Error("send tts err:", err)
+				return
+			}
+		}
+	} else {
+		var sb strings.Builder
+		for text := range texts {
+			if text != "" {
+				sb.WriteString(text)
+			} else {
+				if err = e.ttsApp.Send(sb.String()); err != nil {
+					log.Error("send tts err:", err)
+					return
+				}
+				sb.Reset()
+			}
 		}
 	}
 }
@@ -283,16 +314,17 @@ func (e *Engine) history(ai, user chan string) {
 			if !ok {
 				ai = nil
 			}
-			err := e.rs.AddAi(e.sessionId, his)
-			if err != nil {
-				log.Error("ai history err:", err)
+			if his != "" {
+				if err := e.rs.AddAi(e.sessionId, his); err != nil {
+					log.Error("ai history err:", err)
+				}
 			}
+
 		case his, ok := <-user:
 			if !ok {
 				user = nil
 			}
-			err := e.rs.AddUser(e.sessionId, his)
-			if err != nil {
+			if err := e.rs.AddUser(e.sessionId, his); err != nil {
 				log.Error("user history err:", err)
 			}
 		}
@@ -301,12 +333,6 @@ func (e *Engine) history(ai, user chan string) {
 
 // Close 结束本轮对话
 func (e *Engine) Close() {
-	defer func() {
-		// 关闭所有协程
-		e.cancel()
-		_ = e.close()
-	}()
-
 	// 发送结束标识
 	err := e.ws.WriteJSON(&dto.ChatEndResp{
 		Code: 0,
@@ -316,9 +342,14 @@ func (e *Engine) Close() {
 		log.Error(err.Error())
 		return
 	}
+	// 关闭所有协程
+	e.cancel()
+	_ = e.close()
 	// 发送对话历史记录消息
-	if err = e.provider.Produce(e.ctx, e.sessionId, e.startTime, time.Now()); err != nil {
-		log.Error("消息发送失败, sessionId: ", e.sessionId)
+	if e.round > 3 {
+		if err = e.provider.Produce(e.ctx, e.sessionId, e.startTime, time.Now()); err != nil {
+			log.Error("消息发送失败, sessionId: ", e.sessionId)
+		}
 	}
 
 }
@@ -339,18 +370,20 @@ func (e *Engine) close() (err error) {
 	if err = e.chatApp.Close(); err != nil {
 		log.Error("close chat err:", err)
 	}
-	if err = e.ttsApp.Close(); err != nil {
-		log.Error("close tts err:", err)
+	if e.ttsApp != nil {
+		if err = e.ttsApp.Close(); err != nil {
+			log.Error("close tts err:", err)
+		}
 	}
 	return
 }
 
 // analyse 风险分析
 func analyse(text *string) {
-	if strings.Contains(*text, "&") {
-		if err := util.AlertEMail(); err != nil {
-			log.Error("邮件发送失败", err)
-		}
-		*text = strings.Replace(*text, "&", " ", -1)
-	}
+	//if strings.Contains(*text, "&") {
+	//	if err := util.AlertEMail(); err != nil {
+	//		log.Error("邮件发送失败", err)
+	//	}
+	//	*text = strings.Replace(*text, "&", " ", -1)
+	//}
 }

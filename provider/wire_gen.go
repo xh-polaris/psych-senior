@@ -7,9 +7,9 @@
 package provider
 
 import (
-	"github.com/xh-polaris/psych-digital/biz/application/service"
-	"github.com/xh-polaris/psych-digital/biz/infrastructure/config"
-	"github.com/xh-polaris/psych-digital/biz/infrastructure/mapper/history"
+	"github.com/xh-polaris/psych-senior/biz/application/service"
+	"github.com/xh-polaris/psych-senior/biz/infrastructure/config"
+	"github.com/xh-polaris/psych-senior/biz/infrastructure/mapper/history"
 )
 
 // Injectors from wire.go:

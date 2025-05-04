@@ -97,6 +97,12 @@ func (e *Engine) listen() {
 			} else if data == nil || len(data) == 0 {
 				continue
 			}
+			if len(data) == 1 && int(data[0]) == -1 {
+				if err = e.asrApp.Last(); err != nil {
+					log.Error("listen audio err: ", err)
+					return
+				}
+			}
 			if err = e.asrApp.Send(data); err != nil {
 				e.finish <- struct{}{}
 				return

@@ -60,6 +60,9 @@ type AsrApp interface {
 	// Send 发送音频流
 	Send(bytes []byte) error
 
+	// Last 最后一个包
+	Last() error
+
 	// Receive 接受文字
 	Receive() (string, error)
 

@@ -7,6 +7,8 @@ type (
 		Timestamp int64 `json:"timestamp"`
 		// 使用者标记
 		From string `json:"from"`
+		// 语言
+		Lang string `json:"lang"`
 	}
 
 	// ChatReq 对话请求

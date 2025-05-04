@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	testAsrURL        = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel"
+	testAsrURL        = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream"
 	testAsrAppKey     = "8390064657"
 	testAsrAccessKey  = "4Y-BEHltDMMGtnEFg85xdiifFsGlGlBS"
 	testAsrResourceId = "volc.bigasr.sauc.duration"
@@ -64,6 +64,7 @@ func TestASRStreaming(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
+		time.Sleep(5 * time.Second)
 		receiveResults(ctx, t, asrApp, resultFile)
 	}()
 
@@ -89,7 +90,11 @@ func sendAudio(ctx context.Context, t *testing.T, app *VcAsrApp, file *os.File) 
 			return
 		default:
 			n, err := file.Read(buf)
-			if err == io.EOF {
+			if err == io.EOF || n == 0 {
+				err := app.Last()
+				if err != nil {
+					return
+				}
 				t.Log("音频发送完成")
 				return
 			}

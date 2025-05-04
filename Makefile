@@ -1,7 +1,7 @@
 .PHONY: start build wire update new clean
 
-SERVICE_NAME := psych.digital
-MODULE_NAME := github.com/xh-polaris/psych-digital
+SERVICE_NAME := psych.senior
+MODULE_NAME := github.com/xh-polaris/psych-senior
 
 HANDLER_DIR := biz/adaptor/controller
 MODEL_DIR := biz/application/dto
