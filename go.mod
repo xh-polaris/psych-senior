@@ -12,10 +12,10 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/hertz-contrib/obs-opentelemetry/tracing v0.4.1
 	github.com/hertz-contrib/websocket v0.2.0
+	github.com/jinzhu/copier v0.3.5
 	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/xh-polaris/gopkg v0.0.0-20250312141711-7327267f4ea6
 	github.com/xh-polaris/service-idl-gen-go v0.0.0-20250108075223-4036ab37c8b4
-	github.com/xuri/excelize/v2 v2.9.0
 	github.com/zeromicro/go-zero v1.8.1
 	go.mongodb.org/mongo-driver v1.17.3
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0
@@ -47,7 +47,6 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nyaruka/phonenumbers v1.3.0 // indirect
@@ -58,8 +57,6 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/redis/go-redis/v9 v9.7.1 // indirect
-	github.com/richardlehane/mscfb v1.0.4 // indirect
-	github.com/richardlehane/msoleps v1.0.4 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/tidwall/gjson v1.17.3 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -68,8 +65,6 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
-	github.com/xuri/efp v0.0.0-20240408161823-9ad904a10d6d // indirect
-	github.com/xuri/nfp v0.0.0-20240318013403-ab9948c2c4a7 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect

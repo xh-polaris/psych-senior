@@ -3,6 +3,7 @@ package mq
 import (
 	"encoding/json"
 	"github.com/bytedance/gopkg/util/gopool"
+	"github.com/jinzhu/copier"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/xh-polaris/gopkg/util/log"
 	"github.com/xh-polaris/psych-senior/biz/domain"
@@ -66,7 +67,7 @@ func (c *HistoryConsumer) consume(ctx context.Context) {
 		log.Error("set qos error:", err)
 		return
 	}
-	msgs, err := ch.Consume("chat_history_senior", "history_consumer", false, false, false, false, nil)
+	msgs, err := ch.Consume("chat_history_senior", "history_senior_consumer", false, false, false, false, nil)
 	if err != nil {
 		log.Error("get consume error:", err)
 		return
@@ -123,10 +124,13 @@ func (c *HistoryConsumer) process(ctx context.Context, msg amqp.Delivery) error 
 		Dialogs:   dialogs,
 		StartTime: time.Unix(start, 0),
 		EndTime:   time.Unix(end, 0),
+		Report:    &history.Report{},
 	}
 
 	// 解析对话消息
-	parse(his)
+	if err = parse(his); err != nil {
+		return err
+	}
 
 	// 存储对话记录
 	if err = c.store(ctx, his); err != nil {
@@ -141,23 +145,18 @@ func (c *HistoryConsumer) process(ctx context.Context, msg amqp.Delivery) error 
 }
 
 // parse 解析对话信息
-func parse(his *history.History) {
+func parse(his *history.History) error {
 	reportApp := bailian.GetBLReportApp()
 	report, err := reportApp.Call(buildMsg(his))
 	if err != nil {
 		log.Error("call build error:", err)
-		return
+		return err
 	}
-	his.Name = report.Name
-	his.Class = report.Class
-	his.Report = &history.Report{
-		Keywords:   report.Report.Keywords,
-		Type:       report.Report.Type,
-		Content:    report.Report.Content,
-		Grade:      report.Report.Grade,
-		Suggestion: report.Report.Suggestion,
+	err = copier.Copy(his.Report, report)
+	if err != nil {
+		log.Error("copy report error:", err)
 	}
-	return
+	return err
 }
 
 // buildMsg 拼接消息

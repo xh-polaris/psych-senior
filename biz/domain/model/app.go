@@ -25,7 +25,7 @@ type ChatAppScanner interface {
 // ReportApp 是第三方报告分析大模型应用的抽象
 type ReportApp interface {
 	// Call 获取报告结果
-	Call(msg string) (*dto.ChatReport, error)
+	Call(msg string) (*dto.Report, error)
 
 	// Close 关闭资源
 	Close() error

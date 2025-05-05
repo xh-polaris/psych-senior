@@ -60,9 +60,9 @@ func GetBLReportApp() model.ReportApp {
 	return instance
 }
 
-func (app *BLReportApp) Call(prompt string) (*dto.ChatReport, error) {
+func (app *BLReportApp) Call(prompt string) (*dto.Report, error) {
 	var err error
-	var report dto.ChatReport
+	var report dto.Report
 	client := util.GetHttpClient()
 
 	// 设置调用提示词

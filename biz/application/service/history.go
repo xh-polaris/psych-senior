@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/google/wire"
+	"github.com/jinzhu/copier"
 	"github.com/xh-polaris/psych-senior/biz/adaptor/cmd"
 	"github.com/xh-polaris/psych-senior/biz/infrastructure/mapper/history"
 )
@@ -40,19 +41,14 @@ func (s *HistoryService) ListHistory(ctx context.Context, req *cmd.ListHistoryRe
 		}
 		ch := &cmd.History{
 			ID:        h.ID.Hex(),
-			Name:      h.Name,
-			Class:     h.Class,
 			Dialogs:   dia,
 			StartTime: h.StartTime.Unix(),
 			EndTime:   h.EndTime.Unix(),
+			Report:    &cmd.Report{},
 		}
 		if h.Report != nil {
-			ch.Report = &cmd.Report{
-				Keywords:   h.Report.Keywords,
-				Type:       h.Report.Type,
-				Content:    h.Report.Content,
-				Grade:      h.Report.Grade,
-				Suggestion: h.Report.Suggestion,
+			if err := copier.Copy(ch.Report, h.Report); err != nil {
+				return nil, err
 			}
 		}
 

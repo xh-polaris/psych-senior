@@ -20,8 +20,9 @@ var _ model.TtsApp = (*VcNoModelTtsApp)(nil)
 
 type VcNoModelTtsApp struct {
 	// ws 连接
-	ws *websocket.Conn
-	mu sync.Mutex
+	ws     *websocket.Conn
+	mu     sync.Mutex
+	closed bool
 
 	appKey    string
 	accessKey string
@@ -138,19 +139,25 @@ func (app *VcNoModelTtsApp) Send(text string) (err error) {
 }
 
 func (app *VcNoModelTtsApp) Receive() []byte {
-	for {
-		_, msg, err := app.ws.ReadMessage()
-		if err != nil {
-			glog.Errorf("Receive message error: %v", err)
-			return nil
-		}
-		resp, err := parseResponse(msg)
-		return resp.Audio
+	if app.ws == nil || app.closed {
+		return nil
 	}
+	_, msg, err := app.ws.ReadMessage()
+	if err != nil {
+		glog.Errorf("Receive message error: %v", err)
+		return nil
+	}
+	resp, err := parseResponse(msg)
+	if err != nil {
+		glog.Errorf("Receive response error: %v", err)
+		return nil
+	}
+	return resp.Audio
 }
 
 // Close 关闭连接释放资源
 func (app *VcNoModelTtsApp) Close() (err error) {
+	app.closed = true
 	if app.ws == nil {
 		return
 	}

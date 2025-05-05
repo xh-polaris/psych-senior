@@ -21,10 +21,10 @@ type Dialog struct {
 	Content string `json:"content"`
 }
 
-type Report struct {
-	Keywords   []string `json:"keywords"`
-	Type       []string `json:"type"`
-	Content    string   `json:"content"`
-	Grade      string   `json:"grade"`
-	Suggestion []string `json:"suggestion"`
-}
+//type Report struct {
+//	Keywords   []string `json:"keywords"`
+//	Type       []string `json:"type"`
+//	Content    string   `json:"content"`
+//	Grade      string   `json:"grade"`
+//	Suggestion []string `json:"suggestion"`
+//}

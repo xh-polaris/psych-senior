@@ -324,8 +324,10 @@ func (e *Engine) history(ai, user chan string) {
 			if !ok {
 				user = nil
 			}
-			if err := e.rs.AddUser(e.sessionId, his); err != nil {
-				log.Error("user history err:", err)
+			if his != "" {
+				if err := e.rs.AddUser(e.sessionId, his); err != nil {
+					log.Error("user history err:", err)
+				}
 			}
 		}
 	}
@@ -346,7 +348,7 @@ func (e *Engine) Close() {
 	e.cancel()
 	_ = e.close()
 	// 发送对话历史记录消息
-	if e.round > 3 {
+	if e.round >= 0 {
 		if err = e.provider.Produce(e.ctx, e.sessionId, e.startTime, time.Now()); err != nil {
 			log.Error("消息发送失败, sessionId: ", e.sessionId)
 		}
