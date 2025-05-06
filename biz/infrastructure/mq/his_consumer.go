@@ -128,15 +128,15 @@ func (c *HistoryConsumer) process(ctx context.Context, msg amqp.Delivery) error 
 	}
 
 	// 解析对话消息
-	if err = parse(his); err != nil {
-		return err
+	if len(dialogs) > 0 {
+		if err = parse(his); err != nil {
+			return err
+		}
+		// 存储对话记录
+		if err = c.store(ctx, his); err != nil {
+			return err
+		}
 	}
-
-	// 存储对话记录
-	if err = c.store(ctx, his); err != nil {
-		return err
-	}
-
 	// 从redis中删除
 	if err = rs.Remove(session); err != nil {
 		return err
