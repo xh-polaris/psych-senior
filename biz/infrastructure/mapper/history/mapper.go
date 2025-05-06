@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	prefixUserCacheKey = "cache:history"
-	CollectionName     = "history"
+	prefixHistoryCacheKey = "cache:history"
+	CollectionName        = "history"
 )
 
 var Mapper *MongoMapper
@@ -66,7 +66,6 @@ func (m *MongoMapper) FindMany(ctx context.Context, p *cmd.Paging) (data []*Hist
 	if err != nil {
 		return nil, 0, err
 	}
-
 	total, err = m.conn.CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, err

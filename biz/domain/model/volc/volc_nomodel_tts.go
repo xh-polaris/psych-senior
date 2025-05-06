@@ -101,7 +101,7 @@ func (app *VcNoModelTtsApp) Start() (err error) {
 	params["audio"]["language"] = app.lang
 	params["audio"]["voice_type"] = app.speaker
 	params["audio"]["encoding"] = "pcm"
-	params["audio"]["rate"] = 16000
+	params["audio"]["rate"] = 24000
 	params["audio"]["speed_ratio"] = 1.0
 	params["audio"]["volume_ratio"] = 1.0
 	params["audio"]["pitch_ratio"] = 1.0
