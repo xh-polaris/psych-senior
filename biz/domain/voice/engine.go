@@ -69,14 +69,19 @@ func (e *Engine) recognise() {
 			// 获取响应并写入ws
 			text, err := e.asrApp.Receive()
 			if err != nil {
+				log.Error("获取响应失败", err)
 				e.finish <- struct{}{}
 				return
+			}
+			if text == "" {
+				continue
 			}
 			resp := &dto.AsrResp{
 				Text:      text,
 				Timestamp: time.Now().Unix(),
 			}
 			if err = e.ws.WriteJSON(resp); err != nil {
+				log.Error("写入响应失败", err)
 				e.finish <- struct{}{}
 				return
 			}
@@ -93,17 +98,18 @@ func (e *Engine) listen() {
 		default:
 			data, err := e.ws.ReadBytes()
 			if err != nil {
-				log.Error("listen audio err: ", err)
+				log.Error("listen:receive user:err ", err)
 			} else if data == nil || len(data) == 0 {
 				continue
 			}
 			if len(data) == 1 && int(data[0]) == -1 {
 				if err = e.asrApp.Last(); err != nil {
-					log.Error("listen audio err: ", err)
+					log.Error("listen:send last asr:err", err)
 					return
 				}
 			}
 			if err = e.asrApp.Send(data); err != nil {
+				log.Error("listen:send asr:err ", err)
 				e.finish <- struct{}{}
 				return
 			}
