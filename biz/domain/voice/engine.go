@@ -9,6 +9,7 @@ import (
 	"github.com/xh-polaris/psych-senior/biz/domain/model/volc"
 	"github.com/xh-polaris/psych-senior/biz/infrastructure/config"
 	"golang.org/x/net/context"
+	"io"
 	"time"
 )
 
@@ -68,7 +69,9 @@ func (e *Engine) recognise() {
 		default:
 			// 获取响应并写入ws
 			text, err := e.asrApp.Receive()
-			if err != nil {
+			if err == io.EOF {
+				return
+			} else if err != nil {
 				log.Error("获取响应失败", err)
 				e.finish <- struct{}{}
 				return
@@ -97,16 +100,19 @@ func (e *Engine) listen() {
 			return
 		default:
 			data, err := e.ws.ReadBytes()
-			if err != nil {
+			if err == io.EOF {
+				return
+			} else if err != nil {
 				log.Error("listen:receive user:err ", err)
+				e.finish <- struct{}{}
 			} else if data == nil || len(data) == 0 {
 				continue
 			}
-			if len(data) == 1 && int(data[0]) == -1 {
+			if len(data) == 1 && data[0] == 255 {
 				if err = e.asrApp.Last(); err != nil {
 					log.Error("listen:send last asr:err", err)
-					return
 				}
+				return
 			}
 			if err = e.asrApp.Send(data); err != nil {
 				log.Error("listen:send asr:err ", err)

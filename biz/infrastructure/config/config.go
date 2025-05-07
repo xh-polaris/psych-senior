@@ -28,15 +28,16 @@ type Config struct {
 		URL string
 		DB  string
 	}
-	Cache          cache.CacheConf
-	Redis          *redis.RedisConf
-	RabbitMQ       RabbitMQ
-	SMTP           SMTP
-	BaiLianChat    BaiLianChat
-	BaiLianReport  BaiLianReport
-	VolcTts        VolcTts
-	VolcAsr        VolcAsr
-	VolcNoModelTts VolcNoModelTts
+	Cache               cache.CacheConf
+	Redis               *redis.RedisConf
+	RabbitMQ            RabbitMQ
+	SMTP                SMTP
+	BaiLianChat         BaiLianChat
+	BaiLianShanghaiChat BaiLianShanghaiChat
+	BaiLianReport       BaiLianReport
+	VolcTts             VolcTts
+	VolcAsr             VolcAsr
+	VolcNoModelTts      VolcNoModelTts
 }
 
 type Auth struct {
@@ -50,6 +51,11 @@ type RabbitMQ struct {
 }
 
 type BaiLianChat struct {
+	AppId  string
+	ApiKey string
+}
+
+type BaiLianShanghaiChat struct {
 	AppId  string
 	ApiKey string
 }

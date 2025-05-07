@@ -76,13 +76,12 @@ type Engine struct {
 // 暂时先固定为BaiLian之后类型多再换成工厂方法
 func NewEngine(ctx context.Context, conn *websocket.Conn) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
-	c := config.GetConfig()
 	e := &Engine{
-		ctx:     ctx,
-		cancel:  cancel,
-		ws:      domain.NewWsHelper(conn),
-		rs:      domain.GetRedisHelper(),
-		chatApp: bailian.NewBLChatApp(c.BaiLianChat.AppId, c.BaiLianChat.ApiKey),
+		ctx:    ctx,
+		cancel: cancel,
+		ws:     domain.NewWsHelper(conn),
+		rs:     domain.GetRedisHelper(),
+		//chatApp: bailian.NewBLChatApp(c.BaiLianChat.AppId, c.BaiLianChat.ApiKey),
 		//ttsApp:      volc.NewVcTtsApp(c.VolcTts.AppKey, c.VolcTts.AccessKey, c.VolcTts.Speaker, c.VolcTts.ResourceId, c.VolcTts.Url),
 		aiHistory:   make(chan string, 10),
 		userHistory: make(chan string, 10),
@@ -142,9 +141,11 @@ func (e *Engine) validate() bool {
 	c := config.GetConfig()
 	if startReq.Lang == "zh-shanghai" {
 		e.ttsApp = volc.NewVcNoModelTtsApp(c.VolcNoModelTts.AppKey, c.VolcNoModelTts.AccessKey, c.VolcNoModelTts.Speaker, c.VolcNoModelTts.Cluster, c.VolcNoModelTts.Url)
+		e.chatApp = bailian.NewBLChatApp(c.BaiLianShanghaiChat.AppId, c.BaiLianShanghaiChat.ApiKey)
 		e.ttsStream = false
 	} else if startReq.Lang == "zh" {
 		e.ttsApp = volc.NewVcTtsApp(c.VolcTts.AppKey, c.VolcTts.AccessKey, c.VolcTts.Speaker, c.VolcTts.ResourceId, c.VolcTts.Url)
+		e.chatApp = bailian.NewBLChatApp(c.BaiLianChat.AppId, c.BaiLianChat.ApiKey)
 		e.ttsStream = true
 	} else {
 		return false
